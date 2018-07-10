@@ -25,12 +25,12 @@ elif UsageReportInputCheck == 'check':
 #WhitelabelDS section------------------------------------------------------------------------------------
 whitelabeldssegments = []
 
-with open('whitelabelds.csv', 'rU') as csv_file:
-	whitelabelds_reader = csv.DictReader(csv_file)
+with open('whitelabelds.csv', 'rU') as whitelabel_file:
+	whitelabelds_reader = csv.DictReader(whitelabel_file)
 
 	for line in whitelabelds_reader:
 		whitelabeldssegments.append(line.get('Segments'))
-
+whitelabel_file.close()
 
 #end Whitelabel DS section-------------------------------------------------------------------------------------
 
@@ -43,11 +43,11 @@ SFDC_Opportunity = []
 
 #SFDC = {'IDs': {'Opportunity Owner': 'Opportunity Owner', 'Agency Holding Company':'Agency Holding Company', 'Account Name':'Account Name','Opportunity Name': 'Opportunity Name', 'Product Date': 'Product Date', 'LineItemID': 'LineItemID', 'Segment Name': 'Segment Name', 'Endpoint': 'Endpoint'}}
 
-with open('SFDC.csv', 'rU') as csv_file:
-	SFDC_reader = csv.DictReader(csv_file)
+with open('SFDC3.csv', 'rU') as SFDC_file:
+	SFDC_reader = csv.DictReader(SFDC_file)
 
 	for line in SFDC_reader:
-		SFDC_IDs.append(line.get('IDs'))
+		SFDC_IDs.append(line.get('ID'))
 		SFDC_Owner.append(line.get('Opportunity Owner'))
 		SFDC_Agency.append(line.get('Agency Holding Company'))
 		SFDC_Account.append(line.get('Account Name'))
@@ -56,15 +56,17 @@ with open('SFDC.csv', 'rU') as csv_file:
 
 	if len(SFDC_IDs) != len(SFDC_Owner) != len(SFDC_Agency) != len(SFDC_Account) != len(SFDC_Opportunity):
 		print 'SFDC array lengths do not match'
+#print SFDC_IDs
+SFDC_file.close()
 
 #end SFDC section-------------------------------------------------------------------------------------
 
-with open('hello.csv', 'rU') as csv_file:
-	csv_reader = csv.DictReader(csv_file)
+with open('hello.csv', 'rU') as hello_file:
+	csv_reader = csv.DictReader(hello_file)
 	if UsageReportInput == 'TTD':
 		fieldnames = ['Month, Year of Month','PartnerName',	'AdvertiserName',	'CampaignName',	'TargetingDataId',	'ThirdPartyDataProviderName',	'BrandName',	'FullPath',	'ThirdPartyDataBrandId',	'SegmentId',	'ImpressionCount',	'DataCostInUSD',	'ShareThis Rev']
 	elif UsageReportInput == 'Nielsen':
-		fieldnames = ['Billing Month', 'Publisher', 'Segment','Publisher Revshare']
+		fieldnames = ['Month', 'Publisher', 'Segment','Revenue', 'Network', 'Platform']
 	elif UsageReportInput == 'Lotame':
 		fieldnames = ['Provider Name', 'Seller Name','Buyer Name','Behavior Id','Behavior Name','Behavior Path','Revenue','Payout','Impressions','CPM','Type']
 	elif UsageReportInput == 'Eyeota Branded':
@@ -123,6 +125,7 @@ with open('hello.csv', 'rU') as csv_file:
 					newInputdict['Branding']='Unbranded'
 				else:
 					newInputdict['Branding']='Branded'
+						
 				#End TTD Branding
 
 				#if SFDC_IDs.index(line['SegmentId']) > -1 or line['FullPath'].find('ShareThis > Interest from Social Activity') > -1 or line['FullPath'].find('Custom Segment >') > -1 or line['FullPath'].find('Custom >') > -1:
@@ -140,7 +143,7 @@ with open('hello.csv', 'rU') as csv_file:
 			elif UsageReportInput == 'Appnexus':
 
 				newInputdict['Month'] = line['month']
-				newInputdict['Region'] = 'N/A'
+				newInputdict['Region'] = 'Global'
 				newInputdict['Integration Partner'] = 'Appnexus'
 				if line['targeted_segment_ids'] in SFDC_IDs:
 					newInputdict['Sale Type'] = 'Direct Sales'
@@ -151,11 +154,7 @@ with open('hello.csv', 'rU') as csv_file:
 				newInputdict['Buyer Name']= line['buyer_member_name']
 				newInputdict['Endpoint']='Appnexus'
 				newInputdict['Country']= line['geo_country']
-
-				if line['targeted_segment_names'].find('ShareThis') > -1:
-					newInputdict['Branding']='Branded'
-				else:
-					newInputdict['Branding']='Unbranded'
+				newInputdict['Branding']='Branded'
 
 
 				newInputdict['Segment Name']= line['targeted_segment_names']
@@ -165,6 +164,7 @@ with open('hello.csv', 'rU') as csv_file:
 #--------------------------------------Nielsen Report---------------------------------------
 			elif UsageReportInput == 'Nielsen':
 
+				newInputdict['Month'] = line['Month']
 				newInputdict['Integration Partner'] = 'Nielsen'
 				newInputdict['Sale Type'] = 'BD'
 				newInputdict['Partner Name']= 'N/A'
@@ -172,13 +172,21 @@ with open('hello.csv', 'rU') as csv_file:
 				newInputdict['Buyer Name']= 'N/A'
 
 				if line['Publisher'].find('UK') > -1:
-					newInputdict['Endpoint']='Nielsen EU'
 					newInputdict['Region']='UK'
 					newInputdict['Country'] = 'UK'
 				else:
-					newInputdict['Endpoint']='Nielsen US'
 					newInputdict['Region']='US'
 					newInputdict['Country'] = 'US'
+
+				if line['Platform'] == '':
+					newInputdict['Endpoint']='Nielsen'
+				else:
+					space = line['Platform'].find(' ')
+					newstring = line['Platform'][:space]
+					if newstring == 'DBM':
+						newInputdict['Endpoint']= 'Doubleclick'
+					else:
+						newInputdict['Endpoint']= newstring
 
 				if line['Segment'].find('ShareThis') > -1:
 					newInputdict['Branding']='Branded'
@@ -187,7 +195,7 @@ with open('hello.csv', 'rU') as csv_file:
 
 
 				newInputdict['Segment Name']= line['Segment']
-				newInputdict['Revenue']= line['Publisher Revshare']
+				newInputdict['Revenue']= line['Revenue']
 				newInputdict['Segment ID']= 'N/A'
 
 #--------------------------------------Lotame Report---------------------------------------
@@ -276,19 +284,19 @@ with open('hello.csv', 'rU') as csv_file:
 				carrot = line['SEGMENT_NAME'].find(" > ")
 				arrow = line['SEGMENT_NAME'].find("-->")
 				newInputdict['Endpoint'] = line['PLATFORM']
-				#slice string to get country
+				#slice string to get region
 				if arrow > -1:
-					newInputdict['Country'] = 'US'
+					newInputdict['Region'] = 'US'
 				elif line['SEGMENT_NAME'][:carrot] == 'ShareThis_US' or line['SEGMENT_NAME'][:carrot] == 'Interest from Social Activity' or line['SEGMENT_NAME'][:carrot]== 'ShareThis':
-					newInputdict['Country'] = 'US'
+					newInputdict['Region'] = 'US'
 				elif carrot == -1:
-					newInputdict['Country'] = 'Check Here. No Carrot'
+					newInputdict['Region'] = 'US'
 				elif len(line['SEGMENT_NAME'][:carrot]) > 2:
-					newInputdict['Country'] = 'US'
+					newInputdict['Region'] = 'US'
 				else:
-					newInputdict['Country'] = line['SEGMENT_NAME'][:carrot]
-				#end country section
-				newInputdict['Region']= 'N/A'
+					newInputdict['Region'] = line['SEGMENT_NAME'][:carrot]
+				#end Region section
+				newInputdict['Country']= 'N/A'
 				newInputdict['Integration Partner'] = 'Liveramp'
 				
 				if line['LIVERAMP_SEGMENT_ID'] in SFDC_IDs or line['SEGMENT_NAME'].find('ShareThis > Interest from Social Activity') > -1 or line['SEGMENT_NAME'].find('Custom >') > -1:
@@ -314,6 +322,8 @@ with open('hello.csv', 'rU') as csv_file:
 
 			WhitelabelDScheck = whitelabeldssegments.index(newInputdict['Segment Name']) if newInputdict['Segment Name'] in whitelabeldssegments else -1
 			interestcheck = newInputdict['Segment Name'].find('Interest -')
+			LALcheck = newInputdict['Segment Name'].find('> LAL >')
+			LALcheck2 = newInputdict['Segment Name'].find('> Lookalike >')
 			democheck = newInputdict['Segment Name'].find('Demographic')
 			intentcheck = newInputdict['Segment Name'].find('Intent')
 			B2Bcheck = newInputdict['Segment Name'].find('B2B')
@@ -386,6 +396,8 @@ with open('hello.csv', 'rU') as csv_file:
 					newInputdict['Segment Type'] = 'Seasonal'
 				elif lifecheck > -1:
 					newInputdict['Segment Type'] = 'Life Event'
+				elif LALcheck > -1 or LALcheck2 > -1:
+					newInputdict['Segment Type'] = 'LAL'
 				elif customcheck1 > -1 or customcheck2 > -1 or customcheck3 > -1 or customKWcheck > -1 or customcheck4 > -1 or customcheck5 > -1 or customcheck6 > -1:
 					newInputdict['Segment Type'] = 'Custom'
 				elif categorycheck >-1  or verticalcheck > -1 or sharethischeck > -1:
