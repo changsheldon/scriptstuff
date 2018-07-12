@@ -1,0 +1,559 @@
+import csv
+import os
+
+def format(reportinginput,MonthInput, YearInput,SFDC,DSsegmentsData,thepath):
+	path2 = '/Users/sheldonchang/Desktop/scriptstuff/UsageApp/app/uploadfile/'
+	UsageReportInput = reportinginput
+	headers = {
+		'TTD':['Month, Year of Month','Partner',	'Advertiser',	'Campaign',	'TargetingDataId',	'BrandName',	'FullPath',	'ThirdPartyDataBrandId',	'SegmentId',	'ShareThis Rev'],
+		'Nielsen':['Month', 'Publisher', 'Segment','Revenue', 'Network', 'Platform'],
+		'Lotame':['Provider Name', 'Seller Name','Buyer Name','Behavior Id','Behavior Name','Behavior Path','Revenue','Payout','Impressions','CPM','Type'],
+		'Eyeota Branded':['Platform', 'Buyer', 'Segment','Gross Revenue', 'rev share'],
+		'Eyeota Whitelabel':['Segment Supplier Category', 'Target Country Raw', 'Segment Name','Sum of Supplier Gross Earnings Final (USD)', 'Sum of Supplier Net Earnings Final (USD)'],
+		'LiveRamp':['REPORT_DATE', 'PLATFORM_ID', 'PLATFORM','PARTNER_NAME', 'BUYER_NAME','SOURCE','ADVERTISER_NAME','PUBLISHER','AD_ACCOUNT_ID', 'CAMPAIGN_ID', 'CAMPAIGN_NAME','CAMPAIGN_START_DATE','CAMPAIGN_END_DATE','DEVICE','AD_FORMAT','COUNTRY_DATA', 'COUNTRY_USE', 'DATA_PROVIDER_ID','LIVERAMP_SEGMENT_ID','SEGMENT_NAME', 'GROSS_DATA_CPM', 'NET_CPM', 'IMPRESSIONS', 'CLICKS','GROSS_MEDIA_SPEND','TOTAL_DATA_REVENUE_EARNED', 'DATA_PROVIDER_REVENUE','LIVERAMP_REVENUE','DATA_USE','DATA_TYPE','DATA_PROVIDER','REV_SHARE_PREMIUM_BASIC','CONVERSIONS','ATTRIBUTABLE_REVENUE','AOFT','SOURCE_ID'],
+		'Appnexus':['advertiser_name','buyer_member_id','buyer_member_name','campaign_id','campaign_name','data_costs','data_clearing_fee_usd','data_provider_payout_usd','data_provider_id','data_provider_name','day','geo_country','imps','month','targeted_segment_ids'],
+	}
+
+	fixheader = []
+	headercheck = 'valid'
+	with open(thepath, 'rU',encoding='ISO-8859-1') as hello_file:
+		csv_reader = csv.DictReader(hello_file)
+
+
+#--------------------------------------------------------------remove trailing spaces in headers--------------------------------------------------------------
+
+		fieldnames2 = []
+		#print(csv_reader.fieldnames)
+		for name in csv_reader.fieldnames:
+			fieldnames2.append(name.strip())
+		csv_reader.fieldnames = fieldnames2
+		#print(csv_reader.fieldnames)
+#--------------------------------------------------------------remove trailing spaces in headers--------------------------------------------------------------
+
+#--------------------------------------------------------------legacy header checker--------------------------------------------------------------
+		# for thing in headers[UsageReportInput]:
+		# 	if thing not in csv_reader.fieldnames:
+		# 		fixheader.append(thing)
+		# 		headercheck = 'not valid'
+			
+
+		# if headercheck == 'not valid':
+		# 	print('These headers are not in the report ---> ', fixheader)
+		# 	message = 'These headers are not in the report ---> ', fixheader
+		# 	exit()
+
+		# else:
+		# 	pass
+
+#--------------------------------------------------------------legacy header checker--------------------------------------------------------------
+
+		if MonthInput == 'January' or MonthInput == 'February' or  MonthInput =='March':
+			QuarterInput = "Q1"
+		elif  MonthInput == 'April' or MonthInput =='May' or MonthInput =='June':
+			QuarterInput = "Q2"
+		elif  MonthInput == 'July' or MonthInput =='August' or MonthInput =='September':
+			QuarterInput = "Q3"
+		elif  MonthInput == 'October' or MonthInput =='November' or MonthInput =='December':
+			QuarterInput = "Q4"
+		else:
+			QuarterInput = ''
+
+
+		newInputdict = {}
+		newInputdict['Year'] = YearInput
+		newInputdict['Quarter'] = QuarterInput
+		newInputdict['Month'] = MonthInput
+		#newInputdict = {'Year' : YearInput, 'Quarter' : QuarterInput, 'Month' : MonthInput, 'Endpoint': 'need value', 'Country': 'need value', 'Region': 'needvalue', 'Integration Partner':'needvalue','Sale Type':'needvalue','Branding': 'needvalue','Segment Type': 'needvalue', 'Partner Name':'needvalue','Advertiser Name': 'needvalue','Buyer Name':'needvalue','Segment Name': 'needvalue','Revenue': 'needvalue','Segment ID': 'needvalue','Vertical Segment Name':'needvalue','Opportunity Owner':'needvalue','Agency Holding Company':'needvalue','Account Name':'needvalue','Opportunity Name':'needvalue','L1':'','L2':'','L3':'','L4':'','L5':'','L6':''} 
+		with open(os.path.join(path2,'FormattedReport.csv'), 'w') as csv_file:
+			newheader = ['Year', 'Quarter', 'Month', 'Endpoint', 'Country', 'Region', 'Integration Partner','Sale Type','Branding','Segment Type', 'Partner Name','Advertiser Name','Buyer Name','Segment Name','Revenue','Segment ID','Vertical Segment Name','Opportunity Owner','Agency Holding Company','Account Name','Opportunity Name','L1','L2','L3','L4','L5','L6']
+			csv_writer = csv.DictWriter(csv_file, fieldnames=newheader, delimiter=',')
+			csv_writer.writeheader()
+
+			for line in csv_reader:
+	#--------------------------------------TTD Report---------------------------------------
+				if UsageReportInput == 'TTD':
+					newInputdict['Endpoint']='TTD'
+					#slice string to get country
+					firstarrow = line['FullPath'].find(" > ")
+					if line['FullPath'][:firstarrow] == 'Custom Segment' or line['FullPath'][:firstarrow] == 'Interest from Social Activity' or line['FullPath'][:firstarrow] == 'Political' or line['FullPath'][:firstarrow] == 'Winter Holiday':
+						newInputdict['Region'] = 'Global'
+					else:
+						newInputdict['Region'] = line['FullPath'][:firstarrow]
+					#print line['FullPath'][:firstarrow]
+					#end country section
+					newInputdict['Partner Name']= line['Partner']
+					newInputdict['Advertiser Name']= line['Advertiser']
+					newInputdict['Buyer Name']= 'N/A'
+					newInputdict['Country']='N/A'
+					#get Integration Partner
+					testvalue = line['ThirdPartyDataBrandId'].find("lr")
+					if testvalue > -1:
+						newInputdict['Integration Partner']='Liveramp'
+					else:
+						newInputdict['Integration Partner']='TTD'
+					#End get integration partner section
+
+					#TTD Branding
+					if line['BrandName'] == 'Data Alliance':
+						newInputdict['Branding']='Unbranded'
+					else:
+						newInputdict['Branding']='Branded'
+							
+					#End TTD Branding
+
+					#if SFDC_IDs.index(line['SegmentId']) > -1 or line['FullPath'].find('ShareThis > Interest from Social Activity') > -1 or line['FullPath'].find('Custom Segment >') > -1 or line['FullPath'].find('Custom >') > -1:
+					if line['SegmentId'] in SFDC or line['FullPath'].find('ShareThis > Interest from Social Activity') > -1 or line['FullPath'].find('Custom Segment >') > -1 or line['FullPath'].find('Custom >') > -1:
+						newInputdict['Sale Type'] = 'Direct Sales'
+					else:
+						newInputdict['Sale Type'] = 'BD'
+
+					newInputdict['Segment Name']= line['FullPath']
+					newInputdict['Revenue']= line['ShareThis Rev']
+					newInputdict['Segment ID']= line['SegmentId']
+
+
+	#--------------------------------------Appnexus Report---------------------------------------
+				elif UsageReportInput == 'Appnexus':
+
+					newInputdict['Month'] = line['month']
+					newInputdict['Region'] = 'Global'
+					newInputdict['Integration Partner'] = 'Appnexus'
+					if line['targeted_segment_ids'] in SFDC:
+						newInputdict['Sale Type'] = 'Direct Sales'
+					else:
+						newInputdict['Sale Type'] = 'BD'
+					newInputdict['Partner Name']= 'N/A'
+					newInputdict['Advertiser Name']= line['advertiser_name']
+					newInputdict['Buyer Name']= line['buyer_member_name']
+					newInputdict['Endpoint']='Appnexus'
+					newInputdict['Country']= line['geo_country']
+					newInputdict['Branding']='Branded'
+
+
+					newInputdict['Segment Name']= line['targeted_segment_names']
+					newInputdict['Revenue']= line['data_provider_payout_usd']
+					newInputdict['Segment ID']= line['targeted_segment_ids']
+
+	#--------------------------------------Nielsen Report---------------------------------------
+				elif UsageReportInput == 'Nielsen':
+
+					newInputdict['Month'] = line['Month']
+					newInputdict['Integration Partner'] = 'Nielsen'
+					newInputdict['Sale Type'] = 'BD'
+					newInputdict['Partner Name']= 'N/A'
+					newInputdict['Advertiser Name']= 'N/A'
+					newInputdict['Buyer Name']= 'N/A'
+
+					if line['Publisher'].find('UK') > -1:
+						newInputdict['Region']='UK'
+						newInputdict['Country'] = 'UK'
+					else:
+						newInputdict['Region']='US'
+						newInputdict['Country'] = 'US'
+
+					if line['Platform'] == '':
+						newInputdict['Endpoint']='Nielsen'
+					else:
+						space = line['Platform'].find(' ')
+						newstring = line['Platform'][:space]
+						if newstring == 'DBM':
+							newInputdict['Endpoint']= 'Doubleclick'
+						else:
+							newInputdict['Endpoint']= newstring
+
+					if line['Segment'].find('ShareThis') > -1:
+						newInputdict['Branding']='Branded'
+					else:
+						newInputdict['Branding']='Unbranded'
+
+
+					newInputdict['Segment Name']= line['Segment']
+					newInputdict['Revenue']= line['Revenue']
+					newInputdict['Segment ID']= 'N/A'
+
+	#--------------------------------------Lotame Report---------------------------------------
+				elif UsageReportInput == 'Lotame':
+
+					newInputdict['Region'] = 'Global'
+					newInputdict['Integration Partner'] = 'Lotame'
+					newInputdict['Sale Type'] = 'BD'
+					newInputdict['Country']='N/A'
+					newInputdict['Endpoint']='Lotame'
+		
+					if line['Type'].find('LDX') > -1:
+						newInputdict['Branding']='Unbranded'
+					elif line['Type'].find('Branded') > -1:
+						newInputdict['Branding']='Branded'
+					elif line['Behavior Path'].find('ShareThis') > -1:
+						newInputdict['Branding']='Branded'
+					else:
+						newInputdict['Branding']='Unbranded'
+					
+					newInputdict['Partner Name']= 'N/A'
+					if line['Buyer Name'] != '':
+						newInputdict['Advertiser Name']= line['Buyer Name']
+					else:
+						newInputdict['Advertiser Name']= 'N/A'
+					newInputdict['Buyer Name']= 'N/A'
+
+					newInputdict['Segment Name']= line['Behavior Path']
+					newInputdict['Revenue']= line['Payout']
+					newInputdict['Segment ID']= line['Behavior Id']
+
+	#--------------------------------------Eyeota Branded Report---------------------------------------
+				elif UsageReportInput == 'Eyeota Branded':
+					#print line
+					if line['Platform'] == 'DBM':
+						newInputdict['Endpoint']= 'Doubleclick'
+					else:
+						newInputdict['Endpoint'] = line['Platform']
+					
+					newInputdict['Country']='N/A'
+					
+					firstarrow = line['Segment'].find(" - ")
+					teststring = line['Segment'][:firstarrow]
+					if teststring.find(' ShareThis') > -1:
+						teststring2 = teststring.replace(' ShareThis', '')
+						newInputdict['Region'] = teststring2
+					else:
+						newInputdict['Region'] = teststring
+
+					newInputdict['Integration Partner'] = 'Eyeota'
+					newInputdict['Sale Type'] = 'BD'
+					newInputdict['Branding']='Branded'
+		
+					
+					newInputdict['Partner Name']= 'N/A'
+					newInputdict['Advertiser Name']= 'N/A'
+					newInputdict['Buyer Name']= line['Buyer']
+
+					newInputdict['Segment Name']= line['Segment']
+					newInputdict['Revenue']= line['rev share']
+					newInputdict['Segment ID']= 'N/A'
+
+	#--------------------------------------Eyeota Whitelabel Report---------------------------------------
+				elif UsageReportInput == 'Eyeota Whitelabel':
+					newInputdict['Endpoint'] = 'N/A'
+					newInputdict['Country']= line['Target Country Raw']
+					newInputdict['Region']= 'Global'
+					newInputdict['Integration Partner'] = 'Eyeota'
+					newInputdict['Sale Type'] = 'BD'
+					if line['Segment Name'].find('ShareThis') > -1:
+						newInputdict['Branding']='Branded'
+					else:
+						newInputdict['Branding']='Unbranded'
+						
+						
+					newInputdict['Partner Name']= 'N/A'
+					newInputdict['Advertiser Name']= 'N/A'
+					newInputdict['Buyer Name']= 'N/A'
+
+					newInputdict['Segment Name']= line['Segment Name']
+					newInputdict['Revenue']= line['Sum of Supplier Net Earnings Final (USD)']
+					newInputdict['Segment ID']= 'N/A'
+
+	#--------------------------------------LiveRamp Report---------------------------------------
+				elif UsageReportInput == 'LiveRamp':
+					carrot = line['SEGMENT_NAME'].find(" > ")
+					arrow = line['SEGMENT_NAME'].find("-->")
+					newInputdict['Endpoint'] = line['PLATFORM']
+					#slice string to get region
+					if arrow > -1:
+						newInputdict['Region'] = 'US'
+					elif line['SEGMENT_NAME'][:carrot] == 'ShareThis_US' or line['SEGMENT_NAME'][:carrot] == 'Interest from Social Activity' or line['SEGMENT_NAME'][:carrot]== 'ShareThis':
+						newInputdict['Region'] = 'US'
+					elif carrot == -1:
+						newInputdict['Region'] = 'US'
+					elif len(line['SEGMENT_NAME'][:carrot]) > 2:
+						newInputdict['Region'] = 'US'
+					else:
+						newInputdict['Region'] = line['SEGMENT_NAME'][:carrot]
+					#end Region section
+					newInputdict['Country']= 'N/A'
+					newInputdict['Integration Partner'] = 'Liveramp'
+					
+					if line['LIVERAMP_SEGMENT_ID'] in SFDC or line['SEGMENT_NAME'].find('ShareThis > Interest from Social Activity') > -1 or line['SEGMENT_NAME'].find('Custom >') > -1:
+						newInputdict['Sale Type'] = 'Direct Sales'
+					else:
+						newInputdict['Sale Type'] = 'BD'
+
+					newInputdict['Branding']='Branded'
+					newInputdict['Partner Name']= line['SOURCE']
+					
+					if line['PLATFORM'] == 'Doubleclick':
+						newInputdict['Advertiser Name']= line['BUYER_NAME']
+					else:
+						newInputdict['Advertiser Name']= line['ADVERTISER_NAME']
+
+					newInputdict['Buyer Name']= 'N/A'
+					newInputdict['Segment Name']= line['SEGMENT_NAME']
+					newInputdict['Revenue']= line['DATA_PROVIDER_REVENUE']
+					newInputdict['Segment ID']= line['LIVERAMP_SEGMENT_ID']
+
+	#----------------------------Start Segment Type Categorization-------------------------------
+
+
+				WhitelabelDScheck = DSsegmentsData.index(newInputdict['Segment Name']) if newInputdict['Segment Name'] in DSsegmentsData else -1
+				interestcheck = newInputdict['Segment Name'].find('Interest -')
+				LALcheck = newInputdict['Segment Name'].find('> LAL >')
+				LALcheck2 = newInputdict['Segment Name'].find('> Lookalike >')
+				democheck = newInputdict['Segment Name'].find('Demographic')
+				intentcheck = newInputdict['Segment Name'].find('Intent')
+				B2Bcheck = newInputdict['Segment Name'].find('B2B')
+				seasonalcheck1 = newInputdict['Segment Name'].find('- Seasonal -')
+				seasonalcheck2 = newInputdict['Segment Name'].find('> Seasonal >')
+				seasonalcheck3 = newInputdict['Segment Name'].find('Seasonal -')
+				seasonalcheck4 = newInputdict['Segment Name'].find('Seasonal >')
+				lifecheck = newInputdict['Segment Name'].find('Life Event')
+				customcheck1 = newInputdict['Segment Name'].find('Custom >')
+				customcheck3 = newInputdict['Segment Name'].find('> Custom ')
+				customcheck2 = newInputdict['Segment Name'].find('> Custom >')
+				customcheck4 = newInputdict['Segment Name'].find('ShareThis Custom Segment - ')
+				customcheck5 = newInputdict['Segment Name'].find('Global ShareThis - Custom - ')
+				customcheck6 = newInputdict['Segment Name'].find('Yahoo-->Custom ')
+				customKWcheck = newInputdict['Segment Name'].find('CustomKW')
+				categorycheck = newInputdict['Segment Name'].find('Category')
+				verticalcheck = newInputdict['Segment Name'].find('Vertical')
+				sharethischeck = newInputdict['Segment Name'].find('ShareThis')
+				holidaycheck = newInputdict['Segment Name'].find('Winter Holiday >')
+				#smartcheck = newInputdict['Segment Name'].find('Smart Segments')
+
+				#if interestcheck > -1:
+					#newInputdict['Segment Type'] = 'Interest'
+				if newInputdict['Branding'] == 'Unbranded':
+
+					if democheck > -1:
+						if WhitelabelDScheck != -1:
+							newInputdict['Segment Type'] = 'Demographic DS'
+						else:
+							newInputdict['Segment Type'] = 'Demographic'
+					elif intentcheck > -1:
+						if WhitelabelDScheck != -1:
+							newInputdict['Segment Type'] = 'Intent DS'
+						else:
+							newInputdict['Segment Type'] = 'Intent'
+					elif B2Bcheck > -1: 
+						if WhitelabelDScheck != -1:
+							newInputdict['Segment Type'] = 'B2B DS'
+						else:
+							newInputdict['Segment Type'] = 'B2B'
+					elif seasonalcheck1 > -1 or seasonalcheck2 > -1 or seasonalcheck3 > -1 or seasonalcheck4 > -1 or holidaycheck > -1:
+						#if newInputdict['Segment Name'].find('Holidays & Seasonal Events') > -1 or newInputdict['Segment Name'].find('Holidays and Seasonal Events') > -1:
+						#	newInputdict['Segment Type'] = 'Interest'
+						#else:
+						newInputdict['Segment Type'] = 'Seasonal'
+					elif lifecheck > -1:
+						newInputdict['Segment Type'] = 'Life Event'
+					# elif smartcheck > -1: 
+					# 	if WhitelabelDScheck != -1:
+					# 		newInputdict['Segment Type'] = 'Smart DS'
+					# 	else:
+					# 		newInputdict['Segment Type'] = 'Smart'
+					elif customcheck1 > -1 or customcheck2 > -1 or customcheck3 > -1 or customKWcheck > -1 or customcheck4 > -1 or customcheck5 > -1 or customcheck6 > -1:
+						newInputdict['Segment Type'] = 'Custom'
+					elif categorycheck >-1  or verticalcheck > -1 or sharethischeck > -1:
+						newInputdict['Segment Type'] = 'Interest'
+					else:
+						newInputdict['Segment Type'] = 'Interest'
+					if UsageReportInput == 'Eyeota Whitelabel':
+						if line['Segment Supplier Category'] == 'Custom':
+							newInputdict['Segment Type']= 'Custom'
+						else:
+							pass
+	#----------------------------branded Categorization---------------------------------------------------
+				else:
+					if seasonalcheck1 > -1 or seasonalcheck2 > -1 or seasonalcheck3 > -1 or seasonalcheck4 > -1 or holidaycheck > -1:
+						#if newInputdict['Segment Name'].find('Holidays & Seasonal Events') > -1 or newInputdict['Segment Name'].find('Holidays and Seasonal Events') > -1:
+						#	newInputdict['Segment Type'] = 'Vertical'
+						#else:
+						newInputdict['Segment Type'] = 'Seasonal'
+					elif lifecheck > -1:
+						newInputdict['Segment Type'] = 'Life Event'
+					elif LALcheck > -1 or LALcheck2 > -1:
+						newInputdict['Segment Type'] = 'LAL'
+					elif customcheck1 > -1 or customcheck2 > -1 or customcheck3 > -1 or customKWcheck > -1 or customcheck4 > -1 or customcheck5 > -1 or customcheck6 > -1:
+						newInputdict['Segment Type'] = 'Custom'
+					elif categorycheck >-1  or verticalcheck > -1 or sharethischeck > -1:
+						newInputdict['Segment Type'] = 'Vertical'
+					else:
+						newInputdict['Segment Type'] = 'Vertical'
+
+					if UsageReportInput == 'Eyeota Whitelabel':
+						if line['Segment Supplier Category'] == 'Custom':
+							newInputdict['Segment Type']= 'Custom'
+					else:
+						pass
+					
+						
+				#End Segment Type Categorization
+	#----------------------------Start SFDC data input-------------------------------
+				if newInputdict['Segment ID'] in SFDC:
+					newInputdict['Opportunity Owner'] = SFDC[newInputdict['Segment ID']]['Opportunity Owner']
+					newInputdict['Agency Holding Company'] = SFDC[newInputdict['Segment ID']]['Agency Holding Company']
+					newInputdict['Account Name'] = SFDC[newInputdict['Segment ID']]['Account Name']
+					newInputdict['Opportunity Name'] = SFDC[newInputdict['Segment ID']]['Opportunity Name']
+				else:
+					newInputdict['Opportunity Owner'] = '-'
+					newInputdict['Agency Holding Company'] = '-'
+					newInputdict['Account Name'] = '-'
+					newInputdict['Opportunity Name'] = '-'
+	#----------------------------End SFDC data input-------------------------------
+
+	#----------------------------Start L1 Category splits-------------------------------
+				arrow = newInputdict['Segment Name'].find("-->")
+				longarrow = newInputdict['Segment Name'].find(" ---> ")
+				string = newInputdict['Segment Name']
+
+				if longarrow > -1:
+					string = string.replace(' ---> ', ' > ')
+					split1 = string.find('Activity >')
+					split2 = string.find('ShareThis_US')
+					split3 = string.find('ShareThis')
+					if  split1 > -1:
+						string = string[split1:]
+					elif split2 > -1:
+						newnum = split2 + 15
+						string = string[newnum:]
+					elif split3 > -1:
+						newnum = split3 + 12
+						string = string[newnum:]
+				elif arrow > -1:
+					string = string.replace('-->', ' > ')
+					split1 = string.find('Activity >')
+					split2 = string.find('ShareThis_US')
+					split3 = string.find('ShareThis')
+					if  split1 > -1:
+						string = string[split1:]
+					elif split2 > -1:
+						newnum = split2 + 15
+						string = string[newnum:]
+					elif split3 > -1:
+						newnum = split3 + 12
+						string = string[newnum:]
+
+
+
+				carrotcheck = string.find(' > ')
+				dashcheck = string.find(' - ')
+				hatcheck = string.find('^')
+				sharecheck = string.find('Interest from Social Activity - ')
+				activitycheck = string.find('Activity >')
+				eyeotacheck = string.find('Eyeota Reach')
+
+				if hatcheck > -1:
+					symboltosplit = '^'
+					numsplit = 1
+				elif dashcheck > -1:
+					symboltosplit = ' - '
+					numsplit = 3
+				elif carrotcheck > -1:
+					symboltosplit = ' > '
+					numsplit = 3
+				else:
+					#print('No symbol to split')
+					symboltosplit = 'no symbol'
+					numsplit = 0
+				#print string
+				if symboltosplit == 'no symbol':
+					newInputdict['Vertical Segment Name'] = string
+				elif activitycheck > -1:
+					newnum = activitycheck + 11
+					newInputdict['Vertical Segment Name'] = string[newnum:]
+				elif sharecheck > -1:
+					newnum = sharecheck + 32
+					newInputdict['Vertical Segment Name'] = string[newnum:]
+				elif eyeotacheck > -1:
+					newnum = eyeotacheck + 15
+					newInputdict['Vertical Segment Name'] = string[newnum:]
+				else:
+					split0 = string.find(symboltosplit)
+					newnum = split0 + numsplit
+					newInputdict['Vertical Segment Name'] = string[newnum:]
+
+				string = newInputdict['Vertical Segment Name']
+
+				#clean up Vertical name section for Custom segments in Liveramp and TTD Reports
+				activitycheck = string.find('Activity > ')
+				onecheck = string.find('> 1')
+
+				if activitycheck > -1 and onecheck > -1:
+					newnum = activitycheck + 11
+					newstring = string[newnum:]
+					#newnum2 = onecheck
+					onecheck = newstring.find(' > 1')
+					string = newstring[:onecheck]
+				elif activitycheck >-1:
+					newnum = activitycheck + 11
+					string = string[newnum:]
+				elif onecheck > -1:
+					string = string[:onecheck]
+
+				#End clean up vertical name sectionfor Custom segments in Liveramp and TTD Reports
+
+				split1 = string.find(symboltosplit)
+
+				if split1 > -1:
+					newnum = split1 + numsplit
+					newInputdict['L1'] = string[:split1]
+					string = string[newnum:]
+					split2 = string.find(symboltosplit)
+				else:
+					newInputdict['L1'] = string
+					newnum = 0
+					string = ''
+					split2 = string.find(symboltosplit)
+
+				if split2 > -1:
+					newInputdict['L2'] = string[:split2]
+					newnum = split2 + numsplit
+					string = string[newnum:]
+					split3 = string.find(symboltosplit)
+					if split3 > -1:
+						newInputdict['L3'] = string[:split3]
+						newnum = split3 + numsplit
+						string = string[newnum:]
+						split4 = string.find(symboltosplit)
+						if split4 > -1:
+							newInputdict['L4'] = string[:split4]
+							newnum = split4 + numsplit
+							string = string[newnum:]
+							split5 = string.find(symboltosplit)
+							if split5 > -1:
+								newInputdict['L5'] = string[:split5]
+								newnum = split5 + numsplit
+								string = string[newnum:]
+								split6 = string.find(symboltosplit)
+								if split6 > -1:
+									newInputdict['L6'] = string[:split6]
+								else:
+									newnum = split5 + numsplit
+									newInputdict['L6'] = string
+							else: 
+								newnum = split5 + numsplit
+								newInputdict['L5'] = string
+								newInputdict['L6'] = ''
+						else:
+							newnum = split4 + numsplit
+							newInputdict['L4'] = string
+							newInputdict['L5'] = ''
+							newInputdict['L6'] = ''
+					else:
+						newnum = split3 + numsplit
+						newInputdict['L3'] = string
+						newInputdict['L4'] = ''
+						newInputdict['L5'] = ''
+						newInputdict['L6'] = ''
+				else:
+					newnum = split2 + numsplit
+					newInputdict['L2'] = string
+					newInputdict['L3'] = ''
+					newInputdict['L4'] = ''
+					newInputdict['L5'] = ''
+					newInputdict['L6'] = ''
+
+	#--------------------------write to CSV-------------------------------------------
+				csv_writer.writerow(newInputdict)
+			
+
+
+

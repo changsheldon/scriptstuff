@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block content %}
+	{% if message%}
+		<font color="red"><p>{{message}} </p></font>
+		
+	{% endif%}
+	
+
+	<form method=POST enctype=multipart/form-data action="{{url_for('upload')}}">
+		Enter Usage report you are trying to format: Nielsen, Eyeota Branded, Eyeota Whitelabel, LiveRamp, TTD, Lotame, Appnexus 
+		<br></br>
+		<input type="text" name="reportinginput">
+		<br></br>
+		What is the month of the Usage Report?:
+		<input type="text" name="MonthInput">
+		<br></br>		
+		Year of the Usage Report?:
+		<input type="text" name="YearInput">
+		<br></br>
+
+		<input type=file name=csvfile>
+		<input type="submit">
+	</form>
+
+{% endblock %}
